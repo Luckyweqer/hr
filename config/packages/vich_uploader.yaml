@@ -1,0 +1,13 @@
+parameters:
+  app.path.summary_images: /uploads/images/products
+vich_uploader:
+  db_driver: orm
+  mappings:
+    summary_images:
+      uri_prefix:        '%app.path.summary_images%'
+      upload_destination: '%kernel.project_dir%/public/%app.path.summary_images%'
+      namer: Vich\UploaderBundle\Naming\UniqidNamer
+
+      inject_on_load: false
+      delete_on_update: true
+      delete_on_remove: true

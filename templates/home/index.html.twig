@@ -1,0 +1,99 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% set js_categories = {} %}
+    <form action="" id="form">
+        <input data-field="lastName" data-operator="like" type="text" placeholder="Фамилие">
+        <input data-field="firstName" data-operator="like" type="text" placeholder="Имя">
+        <input data-field="patronymic" data-operator="like" type="text" placeholder="Отчество">
+        <input data-field="dateCreated" data-operator="eq" type="date" placeholder="Дата">
+        <select id="category" data-field="category" data-operator="eq">
+            <option>Выберите категорию</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {% set categoryIdString = category.id ~ "category" %}
+                {% set js_categories = {(category.id ~ "category"): getCategories(category.id)}|merge(js_categories) %}
+            {% endfor %}
+        </select>
+        <select data-field="category" data-operator="eq" id="subCategory">
+            <option value="">Выберите под-категорию</option>
+        </select>
+        <button class="btn-success">Отфильтровать</button>
+    </form>
+    <hr>
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Имя</th>
+            <th scope="col">Фамилия</th>
+            <th scope="col">Отчество</th>
+            <th scope="col">Желаемая зарплата</th>
+            <th scope="col">Дата собеседования</th>
+            <th scope="col">Примечание</th>
+            <th scope="col">Файл</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for summary in summaries %}
+            <tr>
+                <td>{{ summary.firstName }}</td>
+                <td>{{ summary.lastName }}</td>
+                <td>{{ summary.patronymic }}</td>
+                <td>{{ summary.salary|default('Не указана') }}</td>
+                <td>{% if summary.interviewDate %}{{ summary.interviewDate|date('Y-d-m') }}{% else %} - {% endif %}</td>
+                <td>{{ summary.comment|default('-') }}</td>
+
+                <td>{% if summary.fileName %}<a href="{{ vich_uploader_asset(summary, 'file') }}">
+                            Скачать</a>{% else %} - {% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    {{ knp_pagination_render(summaries, 'layout/pagination.html.twig') }}
+    <script>
+        var categories = {{ js_categories|json_encode|raw }};
+        var select = document.querySelector('#category');
+        var sub_select = document.querySelector('#subCategory');
+        select.addEventListener('change', function () {
+            sub_select.innerHTML = '';
+            let categoryIdString = select.value + "category";
+            for (let i = 0, length = categories[categoryIdString].length - 1; i <= length; i++) {
+                sub_select.innerHTML = ` <option value="">Выберите под-категорию</option><option value=${categories[categoryIdString][i]['id']}>${categories[categoryIdString][i]['name']}</option>`;
+            }
+        });
+    </script>
+{% endblock body %}
+
+{% block javascripts %}
+    <script>
+        $(".btn-success").on("click", (e) => {
+            e.preventDefault();
+            let filters = [];
+            $("form#form :input").each(function () {
+                let input = $(this);
+
+                if (!input.val()) {
+                    return;
+                }
+                if (input.attr('id') === 'category') {
+
+                    if ($('#subCategory').val().length === 0) {
+                        filters.push({
+                            'field': input.data("field"),
+                            'operator': input.data("operator"),
+                            'value': input.val(),
+                        });
+                    }
+                } else {
+                    filters.push({
+                        'field': input.data("field"),
+                        'operator': input.data("operator"),
+                        'value': input.val(),
+                    });
+                }
+            });
+            window.location.replace(window.origin + "?filters=" + JSON.stringify(filters))
+        });
+    </script>
+{% endblock %}
